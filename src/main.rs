@@ -49,18 +49,32 @@ pub mod rml_parser {
         tag_stack
     }
 
-    pub fn parse(taglist: Vec<String>) -> RmlElement {
-        let mut complex_taglist : Vec<(String, Vec<(String, String)>)> = vec![];
-        let mut complex_tag_attrs : Vec<(String,String)> = vec![];
+    pub fn parse_to_complex_taglist(taglist: Vec<String>) -> Vec<(String, Vec<String>)> {
+        let mut complex_taglist : Vec<(String, Vec<String>)> = vec![];
         for tag in taglist {
-            println!("{}", tag);
+            let tag_data_unchanged : Vec<&str> = tag.split_whitespace().collect();
+            let mut tag_data : Vec<String> = vec![];
+            for string in tag_data_unchanged {
+                tag_data.push(string.to_string());
+            }
+            let mut tag_name = tag_data[0].clone();
+            tag_data.remove(0);
+            if tag_name[0..1] == *":" {
+                tag_data.push(String::from("end-tag"));
+                tag_name.remove(0);
+            }
+            complex_taglist.push((tag_name.to_string(), tag_data));
         }
+        complex_taglist
+    }
+
+    pub fn parse(complex_taglist: Vec<(String, Vec<String>)>) -> RmlElement {
         RmlElement::create_element(String::from("body"), vec![])
     }
 }
 
 fn main() {
     let content = fs::read_to_string("main.info").expect("No file found");
-    let doc = rml_parser::parse(rml_parser::parse_to_list(&content));
+    let doc = rml_parser::parse(rml_parser::parse_to_complex_taglist(rml_parser::parse_to_list(&content)));
     println!("{:#?}", doc);
 }
