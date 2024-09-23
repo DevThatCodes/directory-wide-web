@@ -84,6 +84,8 @@ pub mod rml_parser {
                 if tag_name[0..1] == *":" {
                     tag_data.push(String::from("end-tag"));
                     tag_name.remove(0);
+                } else {
+                    tag_data.push(String::from("start-tag"));
                 }
                 complex_taglist.push((tag_name.to_string(), tag_data));
             }
@@ -92,6 +94,34 @@ pub mod rml_parser {
     }
 
     pub fn parse(complex_taglist: Vec<(String, Vec<String>)>) -> RmlElement {
+        let mut scope : Vec<String> = vec![];
+        let mut children : Vec<RmlElement> = vec![];
+        let mut content : Vec<String> = vec![];
+        let mut supercomplex_tag_attrs : Vec<(String, String)> = vec![];
+
+        for (complex_tag, complex_tag_attrs) in complex_taglist {
+
+            // TODO: remove clones
+
+            if complex_tag_attrs.contains(&String::from("start-tag")) {
+                scope.push(complex_tag.clone());
+            }
+            if complex_tag_attrs.contains(&String::from("not-tag")) {
+                content.push(complex_tag.clone());
+            }
+            if complex_tag_attrs.contains(&String::from("end-tag")) {
+                for complex_tag_attr in complex_tag_attrs {
+                    let ctad : Vec<&str> = complex_tag_attr.split("=").collect();// complex_tag_attr_data
+                    if ctad.len() > 1 {
+                        supercomplex_tag_attrs.push((ctad[0].to_string(), ctad[1].to_string()))
+                    }
+                }
+                children.push(RmlElement::create_element(complex_tag.clone(), supercomplex_tag_attrs.clone()));
+                scope.pop();
+            }
+        }
+        
+        println!("{:?}", children);
         RmlElement::create_element(String::from("body"), vec![])
     }
 }
@@ -99,5 +129,6 @@ pub mod rml_parser {
 fn main() {
     let content = fs::read_to_string("main.info").expect("No file found");
     let doc = rml_parser::parse(rml_parser::parse_to_complex_taglist(rml_parser::parse_to_list(&content)));
-    println!("doc: {:#?}\ncomplex_taglist:{:#?}", doc, rml_parser::parse_to_complex_taglist(rml_parser::parse_to_list(&content)));
+    println!("doc: {:#?}", doc);
+
 }
