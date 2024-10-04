@@ -1,6 +1,8 @@
 use std::fs;
 
 pub mod rml_parser {
+    use std::thread::scope;
+
 
     #[derive(Debug)]
     pub struct RmlElement {
@@ -35,10 +37,8 @@ pub mod rml_parser {
         let mut after_tag = false;
         for c in string.chars() {
             // do data between tags
-            if after_tag {
-                if c != '[' {
-                    tag_content_builder = tag_content_builder + &c.to_string();
-                }
+            if after_tag && c != '[' {
+                tag_content_builder = tag_content_builder + &c.to_string();
                 //do some other stuff that is after a tag but doesnt depend on ^
             }
 
@@ -104,20 +104,28 @@ pub mod rml_parser {
             // TODO: remove clones
 
             if complex_tag_attrs.contains(&String::from("start-tag")) {
+                for complex_tag_attr in complex_tag_attrs.clone() {
+                    let ctad : Vec<&str> = complex_tag_attr.split("=").collect();// complex_tag_attr_data
+                    if ctad.len() > 1 {
+                        supercomplex_tag_attrs.push((ctad[0].to_string(), ctad[1].to_string()))
+                    }
+                }
                 scope.push(complex_tag.clone());
             }
             if complex_tag_attrs.contains(&String::from("not-tag")) {
                 content.push(complex_tag.clone());
             }
             if complex_tag_attrs.contains(&String::from("end-tag")) {
-                for complex_tag_attr in complex_tag_attrs {
-                    let ctad : Vec<&str> = complex_tag_attr.split("=").collect();// complex_tag_attr_data
-                    if ctad.len() > 1 {
-                        supercomplex_tag_attrs.push((ctad[0].to_string(), ctad[1].to_string()))
+                scope.pop();
+                let mut element = RmlElement::create_element(complex_tag.clone(), supercomplex_tag_attrs.clone());
+                if !scope.is_empty() {
+                    children.push(element);
+                } else {
+                    for child in children {
+                        element.add_child(child);   
                     }
                 }
-                children.push(RmlElement::create_element(complex_tag.clone(), supercomplex_tag_attrs.clone()));
-                scope.pop();
+                supercomplex_tag_attrs.clear();
             }
         }
         
