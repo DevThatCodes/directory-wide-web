@@ -1,25 +1,22 @@
 use std::fs;
 
 pub mod rml_parser {
-    use std::thread::scope;
-
-
     #[derive(Debug)]
     pub struct RmlElement {
         name: String,
         attributes: Vec<(String, String)>,
-        children: Vec<RmlElement>,
+        children: Vec<Box<RmlElement>>,
     }
 
     impl RmlElement {
         pub fn create_element(name: String, attributes: Vec<(String,String)>) -> Self {
             RmlElement {name, attributes, children: vec![]}
         }
-        pub fn get_children(&self) -> &Vec<RmlElement> {
+        pub fn get_children(&self) -> &Vec<Box<RmlElement>> {
             &self.children
         }
         pub fn add_child(&mut self, element: RmlElement) {
-            self.children.push(element);
+            self.children.push(Box::new(element));
         }
         pub fn tag_name(&self) -> &str {
             &self.name
@@ -121,9 +118,7 @@ pub mod rml_parser {
                 if !scope.is_empty() {
                     children.push(element);
                 } else {
-                    for child in children {
-                        element.add_child(child);   
-                    }
+                    children.iter().for_each(|child| element.add_child(child));
                 }
                 supercomplex_tag_attrs.clear();
             }
